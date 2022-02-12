@@ -24,7 +24,7 @@ import random
 
 TOKEN = '' # Setting bots token
 
-bot = commands.Bot(command_prefix='-') # Setting bots command prefix
+bot = commands.Bot(command_prefix='=') # Setting bots command prefix
 
 # Executes when bot is booted up (ready)
 @bot.event
@@ -192,9 +192,9 @@ async def play(ctx, *, searchKey : str):
 
         pop_queue()
 
-# Shows the current queue
+# Shows the current queue (10 songs per page (default: page 1))
 @bot.command(aliases=['q'])
-async def queue(ctx):
+async def queue(ctx, x : int = 1):
     print('Checking queue')
     global loopQ
     loop_song_queue = get_song_queue()["loop_song_queue"]
@@ -203,23 +203,49 @@ async def queue(ctx):
         print('loop queue list')
         msg = 'Current songs in loop queue :\n'
         print('Assembling queue')
-        i = 0
-        for item in loop_song_queue["titles"]:
-            i += 1
-            song_name = item.encode("utf-8").decode("unicode-escape")
-            msg += str(i) + '. ' + song_name + '\n'
+        if x <= 0:
+            await ctx.send("Invalid page number !")
+            return
+        n = len(loop_song_queue["titles"]) // 10 + 1
+        st = (x * 10) - 10
+        end = x * 10
+        valid = False
+        try :
+            for i in range(st, end):
+                song_name = loop_song_queue["titles"][i].encode("utf-8").decode("unicode-escape")
+                msg += str(i + 1) + '. ' + song_name + '\n'
+                valid = True
+        except:
+            if not valid:
+                await ctx.send("Invalid page number !")
+                return
+
+        msg += "Page (" + str(x) + "/" + str(n) + ")"
         print('Done assembling')
         await ctx.send(msg)
     else:
         print('Non loop queue list')
+        print('Assembling queue')
         if len(songQueue) != 0:
             msg = 'Current songs in queue :\n'
-            i = 0
-            print('Assembling queue')
-            for item in songQueue["titles"]:
-                i += 1
-                song_name = item.encode("utf-8").decode("unicode-escape")
-                msg += str(i) + '. ' + song_name + '\n'
+            if x <= 0:
+                await ctx.send("Invalid page number !")
+                return
+            n = len(songQueue["titles"]) // 10 + 1
+            st = (x * 10) - 10
+            end = x * 10
+            valid = False
+            try :
+                for i in range(st, end):
+                    song_name = songQueue["titles"][i].encode("utf-8").decode("unicode-escape")
+                    msg += str(i + 1) + '. ' + song_name + '\n'
+                    valid = True
+            except:
+                if not valid:
+                    await ctx.send("Invalid page number !")
+                    return
+
+            msg += "Page (" + str(x) + "/" + str(n) + ")"
             print('Done assembling')
             await ctx.send(msg)
 
@@ -633,19 +659,32 @@ async def playlistadd(ctx, *, searchKey : str):
         await ctx.send("Song added to your playlist")
 
 
-# Shows the user their current saved playlist
+# Shows the user their current saved playlist (10 songs per page (default: page 1))
 @bot.command(aliases=['plq'])
-async def playlistq(ctx):
+async def playlistq(ctx, x : int = 1):
     msg = 'Current songs in your playlist:\n'
     queue = get_playlist(ctx.author.id)
     if queue == None:
         await ctx.send("Make your playlist using -playlistadd")
         return
-    i = 0
-    for item in queue["titles"]:
-        i += 1
-        song_name = item.encode("utf-8").decode("unicode-escape")
-        msg += str(i) + '. ' + song_name + '\n'
+    if x <= 0:
+        await ctx.send("Invalid page number")
+        return
+    n = len(queue["titles"]) // 10 + 1
+    st = (x * 10) - 10
+    end = x * 10
+    valid = False
+    try :
+        for i in range(st, end):
+            song_name = queue["titles"][i].encode("utf-8").decode("unicode-escape")
+            msg += str(i + 1) + '. ' + song_name + '\n'
+            valid = True
+    except:
+        if not valid:
+            await ctx.send("Invalid page number !")
+            return
+
+    msg += "Page (" + str(x) + "/" + str(n) + ")"
     print('Done assembling')
     await ctx.send(msg)
 
