@@ -203,22 +203,31 @@ async def queue(ctx, x : int = 1):
         print('loop queue list')
         msg = 'Current songs in loop queue :\n'
         print('Assembling queue')
-        if x <= 0:
+        l = len(loop_song_queue["titles"])
+
+        # Calculating total number of pages
+        n = l
+        if n % 10 == 0:
+            n = int(n / 10)
+        else:
+            n = n // 10 + 1
+
+        # Checking if entered number is valid
+        if x <= 0 or x > n:
             await ctx.send("Invalid page number !")
             return
-        n = len(loop_song_queue["titles"]) // 10 + 1
-        st = (x * 10) - 10
-        end = x * 10
-        valid = False
+            
+        st = (x * 10) - 10 # Starting number
+        end = x * 10 # Ending number
+        if end > l:
+            end = l
+
         try :
             for i in range(st, end):
                 song_name = loop_song_queue["titles"][i].encode("utf-8").decode("unicode-escape")
                 msg += str(i + 1) + '. ' + song_name + '\n'
-                valid = True
         except:
-            if not valid:
-                await ctx.send("Invalid page number !")
-                return
+            await ctx.send("Invalid")
 
         msg += "Page (" + str(x) + "/" + str(n) + ")"
         print('Done assembling')
@@ -228,22 +237,30 @@ async def queue(ctx, x : int = 1):
         print('Assembling queue')
         if len(songQueue) != 0:
             msg = 'Current songs in queue :\n'
-            if x <= 0:
+            l = len(songQueue["titles"])
+            # Calculating total number of pages
+            n = l
+            if n % 10 == 0:
+                n = int(n / 10)
+            else:
+                n = n // 10 + 1
+
+            # Checking if entered number is valid
+            if x <= 0 or x > n:
                 await ctx.send("Invalid page number !")
                 return
-            n = len(songQueue["titles"]) // 10 + 1
-            st = (x * 10) - 10
-            end = x * 10
-            valid = False
+                
+            st = (x * 10) - 10 # Starting number
+            end = x * 10 # Ending number
+            if end > l:
+                end = l
+            
             try :
                 for i in range(st, end):
                     song_name = songQueue["titles"][i].encode("utf-8").decode("unicode-escape")
                     msg += str(i + 1) + '. ' + song_name + '\n'
-                    valid = True
             except:
-                if not valid:
-                    await ctx.send("Invalid page number !")
-                    return
+                await ctx.send("Invalid")
 
             msg += "Page (" + str(x) + "/" + str(n) + ")"
             print('Done assembling')
@@ -664,25 +681,35 @@ async def playlistadd(ctx, *, searchKey : str):
 async def playlistq(ctx, x : int = 1):
     msg = 'Current songs in your playlist:\n'
     queue = get_playlist(ctx.author.id)
+    l = len(queue["titles"])
     if queue == None:
         await ctx.send("Make your playlist using -playlistadd")
         return
-    if x <= 0:
-        await ctx.send("Invalid page number")
+
+    # Calculating total number of pages
+    n = l
+    if n % 10 == 0:
+        n = int(n / 10)
+    else:
+        n = n // 10 + 1
+
+    # Checking if entered number is valid
+    if x <= 0 or x > n:
+        await ctx.send("Invalid page number !")
         return
-    n = len(queue["titles"]) // 10 + 1
-    st = (x * 10) - 10
-    end = x * 10
-    valid = False
+        
+    st = (x * 10) - 10 # Starting number
+    end = x * 10 # Ending number
+    if end > l:
+        end = l
+
+    # Assembling queue
     try :
         for i in range(st, end):
             song_name = queue["titles"][i].encode("utf-8").decode("unicode-escape")
             msg += str(i + 1) + '. ' + song_name + '\n'
-            valid = True
     except:
-        if not valid:
-            await ctx.send("Invalid page number !")
-            return
+        await ctx.send("Invalid!")
 
     msg += "Page (" + str(x) + "/" + str(n) + ")"
     print('Done assembling')
