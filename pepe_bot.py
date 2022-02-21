@@ -214,7 +214,7 @@ async def queue(ctx, x : int = 1):
 
         # Checking if entered number is valid
         if x <= 0 or x > n:
-            await ctx.send("Invalid page number !")
+            await ctx.send("Invalid page number or empty queue !")
             return
             
         st = (x * 10) - 10 # Starting number
@@ -247,7 +247,7 @@ async def queue(ctx, x : int = 1):
 
             # Checking if entered number is valid
             if x <= 0 or x > n:
-                await ctx.send("Invalid page number !")
+                await ctx.send("Invalid page number or empty queue !")
                 return
                 
             st = (x * 10) - 10 # Starting number
@@ -465,11 +465,13 @@ async def skip(ctx):
     if len(songQueue) != 0:
         voice = ctx.voice_client
         voice.stop()
+        await ctx.send("Skipped to next song")
         print('Skipping to next song')
     else:
-        print('Can not skip, stopping...')
         voice = ctx.voice_client
         voice.stop()
+        await ctx.send("Skipped to next song")
+        print('Can not skip, stopping...')
         return
 
 # Commands the bot to leave the voice channel it is currently in making it available
@@ -695,7 +697,7 @@ async def playlistq(ctx, x : int = 1):
 
     # Checking if entered number is valid
     if x <= 0 or x > n:
-        await ctx.send("Invalid page number !")
+        await ctx.send("Invalid page number or empty queue !")
         return
         
     st = (x * 10) - 10 # Starting number
