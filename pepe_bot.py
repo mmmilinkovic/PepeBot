@@ -469,6 +469,42 @@ async def skip(ctx):
         await ctx.send("Skipped to next song")
         print('Can not skip, stopping...')
 
+# Skips to specific song in queue based on song number in queue
+@bot.command(aliases=['sto'])
+async def skipto(ctx, x : int):
+    # Checks if song is being played
+    song = os.path.isfile("song.webm")
+    if not song:
+        await ctx.send("Song isn't being played...")
+        return
+
+    # Checks what needs to be updated
+    global loop_queue
+    voice = ctx.voice_client
+    song_queue = get_song_queue()["queue"]
+    print("got voice")
+    if loop_queue:
+        loop_song_queue = get_song_queue()["loop_song_queue"]
+        if x < 1 or x > len(loop_song_queue["urls"]):
+            await ctx.send("Error / Entered wrong number !")
+            return
+        song_queue["urls"] = loop_song_queue["urls"][x - 1:]
+        song_queue["titles"] = loop_song_queue["titles"][x - 1:]
+        song_queue["durations"] = loop_song_queue["durations"][x - 1:]
+        write_song_queue(song_queue) # Updating song queue in data.json
+        voice.stop() # Makes it stop current song and skip to next one
+    else:
+        print("GOT q")
+        # Checks if the entered number is valid
+        if x < 1 or x > len(song_queue["urls"]):
+            await ctx.send("Error / Entered wrong number !")
+            return
+        print("Editing song queue")
+        song_queue["urls"] = song_queue["urls"][x - 1:]
+        song_queue["titles"]= song_queue["titles"][x - 1:]
+        song_queue["durations"] = song_queue["durations"][x - 1:]
+        write_song_queue(song_queue) # Updating song queue in data.json
+        voice.stop() # Makes it stop current song and skip to next one
 
 # Commands the bot to leave the voice channel it is currently in making it available
 # to join in other voice channel in case anyone requests it
