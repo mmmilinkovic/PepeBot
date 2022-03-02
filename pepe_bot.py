@@ -57,7 +57,7 @@ async def hi(ctx):
 @bot.command(aliases=['j'])
 async def join(ctx):
     voice = ctx.author.voice
-    if voice == None:
+    if voice is None:
         await ctx.send('You are not in any voice channel...')
     else:
         try:
@@ -66,7 +66,7 @@ async def join(ctx):
         except:
             await ctx.send('im already in voice channel')
 
-playlist_mode = False # 
+playlist_mode = False
 song_queue = [] # Check if you can remove this !!
 current_song_url = ''
 current_song_title = ''
@@ -97,7 +97,7 @@ def start_playing(v_client, url, title, duration):
                 next_song_url = song_queue["urls"].pop(0)
                 next_song_title = song_queue["titles"].pop(0)
                 next_song_duration = song_queue["durations"].pop(0)
-        
+
                 pop_queue()
                 start_playing(v_client, next_song_url, next_song_title, next_song_duration)
             else:
@@ -131,12 +131,12 @@ def start_playing(v_client, url, title, duration):
 
 # Makes the bot play a song or adds it to a queue if there is a song already playing
 @bot.command(aliases=['p'])
-async def play(ctx, *, searchKey : str):
+async def play(ctx, *, search_key : str):
     global loop_queue
     global playlist_mode
     song_queue = get_song_queue()["queue"]
     voice = ctx.voice_client
-    if voice == None:
+    if voice is None:
         await ctx.send('Im not connected to voice channel')
         return
 
@@ -145,13 +145,13 @@ async def play(ctx, *, searchKey : str):
         return
 
     # In case link was provided make sure we get rid of any additional parameters
-    if searchKey.startswith("https:"):
-        i = searchKey.find('&')
+    if search_key.startswith("https:"):
+        i = search_key.find('&')
         if i != -1:
-            searchKey = searchKey[:i]
+            search_key = search_key[:i]
 
-    info = await find_song(searchKey)
-    if info == None:
+    info = await find_song(search_key)
+    if info is None:
         await ctx.send("Can't find the song...try typing its name...")
         return
     print(info)
@@ -212,7 +212,7 @@ async def queue(ctx, x : int = 1):
         if x <= 0 or x > n:
             await ctx.send("Invalid page number or empty queue !")
             return
-            
+
         st = (x * 10) - 10 # Starting number
         end = x * 10 # Ending number
         if end > l:
@@ -245,12 +245,12 @@ async def queue(ctx, x : int = 1):
             if x <= 0 or x > n:
                 await ctx.send("Invalid page number or empty queue !")
                 return
-                
+
             st = (x * 10) - 10 # Starting number
             end = x * 10 # Ending number
             if end > l:
                 end = l
-            
+
             try :
                 for i in range(st, end):
                     song_name = song_queue["titles"][i].encode("utf-8").decode("unicode-escape")
@@ -290,10 +290,10 @@ async def shuffle(ctx):
 
         else:
             await ctx.send("There are no songs in loop queue...")
-    
+
     else:
         song_queue = get_song_queue()["queue"]
-        print(song_queue)        
+        print(song_queue)
         # Check if there are any songs in queue
         if len(song_queue["titles"]) != 0:
             seed = random.random() # Gets random number for seed
@@ -309,7 +309,7 @@ async def shuffle(ctx):
 
             write_song_queue(song_queue)
             await ctx.send("Shuffled queue...")
-        
+
         else:
             await ctx.send("There are no songs in queue...")
 
@@ -345,7 +345,6 @@ async def delete(ctx, index : int):
                 del song_queue["urls"][index - 1]
                 del song_queue["titles"][index - 1]
                 del song_queue["durations"][index - 1]
-        
                 write_song_queue(song_queue)
             except:
                 await ctx.send("Invalid song index...")
@@ -381,11 +380,10 @@ async def clear(ctx):
         with open("data.json", "w") as outfile:
             json.dump(data, outfile, ensure_ascii=False, indent=4)
         outfile.close()
-    
 
     await ctx.send("Queue cleared...")
 
-        
+
 
 # Pauses the audio play
 @bot.command()
@@ -411,7 +409,7 @@ async def stop(ctx):
     await asyncio.sleep(1) # It won't remove song if we dont wait 1 second here
     remove_song()
     await ctx.send('Stopped looping...')
-    
+
 
 # Resumes the audio play
 @bot.command()
@@ -445,7 +443,7 @@ async def loop(ctx):
             loop_song_queue["urls"].insert(0, current_song_url) # Inserts current song in the beggining of loop queue
             loop_song_queue["titles"].insert(0, current_song_title)
             loop_song_queue["durations"].insert(0, current_song_duration)
-    
+
             write_loop_song_queue(loop_song_queue)
         print(loop_song_queue)
     else:
@@ -555,7 +553,7 @@ async def on_voice_state_update(member, before, after):
     if after.channel and member.voice.channel.id == _v_channel_id:
         user_playlist = get_playlist(member.id)
         print(user_playlist)
-        if voice == None and user_playlist != None:
+        if voice is None and user_playlist is not None:
             await play_the_playlist(_t_channel, member.name, voice, _v_channel, user_playlist)
 
 # Turns on or off the playlist mode
@@ -568,7 +566,7 @@ async def playlist(ctx):
         await ctx.send("Playlist mode turned off...")
     else:
         voice = ctx.author.voice
-        if voice == None:
+        if voice is None:
             print("User tried to turn on playlist mode but the user is not in voice")
             await ctx.send('You are not in any voice channel...')
         else:
@@ -580,18 +578,18 @@ async def playlist(ctx):
             print("Playling playlist mode manually by user...")
             user_playlist = get_playlist(ctx.author.id)
             print(user_playlist)
-            if user_playlist != None:
+            if user_playlist is not None:
                 global _guild
                 #global _v_channel
                 v = ctx.author.voice
-                if v != None:
+                if v is not None:
                     _v_channel = v
                 else:
                     await ctx.send("You are not in voice channel...")
                     return
                 global _t_channel
                 bot_voice = discord.utils.get(bot.voice_clients, guild=_guild)
-                if bot_voice == None:
+                if bot_voice is None:
                     bot_voice = await voice.channel.connect()
                     print("Connected bot to voice channel")
                 print("Should play playlist")
@@ -637,7 +635,7 @@ async def copyplaylist(ctx):
     member_id = ctx.author.id
     user_playlist = get_playlist(member_id)
     voice = ctx.voice_client
-    if voice == None:
+    if voice is None:
         await ctx.send("Im not connected to any voice channels...")
         return
     if song:
@@ -654,7 +652,7 @@ async def copyplaylist(ctx):
         start_playing(voice, song_queue["urls"].pop(0), song_queue["titles"].pop(0), song_queue["durations"].pop(0))
         pop_queue()
         await ctx.send("Copied songs from your playlist to queue...")
-    
+
     global loop_queue
     if loop_queue:
         for i in user_playlist["urls"]: loop_song_queue["urls"].append(i)
@@ -665,16 +663,16 @@ async def copyplaylist(ctx):
 
 # Makes or adds the song to someones playlist
 @bot.command(aliases=['pladd'])
-async def playlistadd(ctx, *, searchKey : str):
+async def playlistadd(ctx, *, search_key : str):
     print('Adding song')
-    info = await find_song(searchKey)
+    info = await find_song(search_key)
     url = info[0]
     title = info[1].encode("unicode-escape").decode("utf-8")
     duration = info[2]
     await ctx.send("Queued : " + title.encode("utf-8").decode("unicode-escape"))
     member_id = ctx.author.id
     member_playlist = get_playlist(member_id)
-    if member_playlist != None:
+    if member_playlist is not None:
         print(member_playlist["urls"])
         print(url, title, duration)
         member_playlist["urls"].append(url)
@@ -716,7 +714,7 @@ async def playlistq(ctx, x : int = 1):
     msg = 'Current songs in your playlist:\n'
     queue = get_playlist(ctx.author.id)
     l = len(queue["titles"])
-    if queue == None:
+    if queue is None:
         await ctx.send("Make your playlist using -playlistadd")
         return
 
@@ -731,7 +729,7 @@ async def playlistq(ctx, x : int = 1):
     if x <= 0 or x > n:
         await ctx.send("Invalid page number or empty queue !")
         return
-        
+
     st = (x * 10) - 10 # Starting number
     end = x * 10 # Ending number
     if end > l:
@@ -755,7 +753,7 @@ async def playlistshuffle(ctx):
     id = ctx.author.id
     playlist_q = get_playlist(id)
     seed = random.random()
-    
+
     random.seed(seed)
     random.shuffle(playlist_q["urls"])
     random.seed(seed)
@@ -783,7 +781,7 @@ async def playlistdel(ctx, index : int):
     try:
         del playlist_q["urls"][index]
         del playlist_q["titles"][index]
-        del playlist_q["durations"][index] 
+        del playlist_q["durations"][index]
         save_playlist(playlist_q, id)
         await ctx.send("Deleted " + str(index + 1) + ". song")
     except:
@@ -797,7 +795,7 @@ async def playlistdelall(ctx):
     global playlist_mode
     playlist_mode = False
     print("Turned off playlist mode due to playdelall")
-    if member_playlist != None:
+    if member_playlist is not None:
         delete_playlist(member_id)
         await ctx.send("Deleted your playlist...you may create new by using -playlistadd")
     else:
@@ -910,11 +908,11 @@ async def shutdown(ctx):
         await leave(ctx)
     except:
         pass
-    
+
     print('--------------')
     print('Max memory usage (bytes) :')
     print("WIP")
-    await ctx.send('Shutting down...') 
+    await ctx.send('Shutting down...')
     await bot.close()
     print('')
     print('Bot logged out')
@@ -927,29 +925,29 @@ async def shutdown(ctx):
 
 # Looking up for url of song by its name
 async def find_song(name : str):
-    videosSearch = VideosSearch(name, limit = 1)
-    videosResult = await videosSearch.next()
-    videosResult = videosResult["result"]
-    print(videosResult)
-    if videosResult == []:
+    videos_search = VideosSearch(name, limit = 1)
+    videos_result = await videos_search.next()
+    videos_result = videos_result["result"]
+    print(videos_result)
+    if videos_result == []:
         print("Didn't find a song...returning None")
         return None
-    link = videosResult[0]["link"]
-    title = videosResult[0]["title"]
-    duration = hms_to_seconds(videosResult[0]["duration"])
+    link = videos_result[0]["link"]
+    title = videos_result[0]["title"]
+    duration = hms_to_seconds(videos_result[0]["duration"])
     return(link, title, duration)
 
 # Remove song.webm from storage if it exists
 def remove_song():
     try:
-        song_directory = os.listdir('./')   
+        song_directory = os.listdir('./')
         for item in song_directory:
             if item.endswith('.webm'):
                 os.remove(item)
     except:
         print("Error in deleting song")
-        
-# Converts time from string (HH:MM:SS) to seconds   
+
+# Converts time from string (HH:MM:SS) to seconds
 def hms_to_seconds(t : str):
     if len(t) <= 5:
         t = '00:' + t[:]
