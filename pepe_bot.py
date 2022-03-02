@@ -3,20 +3,16 @@ PepeBot made by reyy
 
 '''
 
+import os
+import json
+import random
 import asyncio
-from logging import NullHandler
 import psutil
 import discord
-import aiofiles.os
-from discord import channel
-from discord import member
 from discord.ext import commands
 from discord.utils import get
 import yt_dlp
 from youtubesearchpython.__future__ import VideosSearch # Needed to run youtubesearch in async
-import os
-import json
-import random
 
 # Sets the high process prio remove when testing on windows
 #p = psutil.Process(os.getpid())
@@ -71,39 +67,39 @@ async def join(ctx):
             await ctx.send('im already in voice channel')
 
 playlist_mode = False # 
-songQueue = [] # Check if you can remove this !!
+song_queue = [] # Check if you can remove this !!
 current_song_url = ''
 current_song_title = ''
 current_song_duration = '' # Used to determine if we need to wait since the queue data is currently being written to data.json
-def start_playing(vClient, url, title, duration):
+def start_playing(v_client, url, title, duration):
     def check_queue():
         print('Checking queue...')
-        print('Looping ? ' + str(loopQ))
+        print('Looping ? ' + str(loop_queue))
 
-        songQueue = get_song_queue()["queue"]
+        song_queue = get_song_queue()["queue"]
         loop_song_queue = get_song_queue()["loop_song_queue"]
-        if len(songQueue["urls"]) != 0:
-            next_song_url = songQueue["urls"].pop(0)
-            next_song_title = songQueue["titles"].pop(0)
-            next_song_duration = songQueue["durations"].pop(0)
+        if len(song_queue["urls"]) != 0:
+            next_song_url = song_queue["urls"].pop(0)
+            next_song_title = song_queue["titles"].pop(0)
+            next_song_duration = song_queue["durations"].pop(0)
             pop_queue()
             print('Playing next song')
-            start_playing(vClient, next_song_url, next_song_title, next_song_duration)
+            start_playing(v_client, next_song_url, next_song_title, next_song_duration)
         else:
             # If its the last song in queue loop the queue
-            if loopQ:
+            if loop_queue:
                 print('Loop queue : ')
                 print(loop_song_queue)
-                songQueue = loop_song_queue.copy()
+                song_queue = loop_song_queue.copy()
                 print('new queue: ')
-                print(songQueue)
-                write_song_queue(songQueue)
-                next_song_url = songQueue["urls"].pop(0)
-                next_song_title = songQueue["titles"].pop(0)
-                next_song_duration = songQueue["durations"].pop(0)
+                print(song_queue)
+                write_song_queue(song_queue)
+                next_song_url = song_queue["urls"].pop(0)
+                next_song_title = song_queue["titles"].pop(0)
+                next_song_duration = song_queue["durations"].pop(0)
         
                 pop_queue()
-                start_playing(vClient, next_song_url, next_song_title, next_song_duration)
+                start_playing(v_client, next_song_url, next_song_title, next_song_duration)
             else:
                 print(loop_song_queue)
                 global current_song_url
@@ -131,14 +127,14 @@ def start_playing(vClient, url, title, duration):
         if file.endswith('webm'):
             os.rename(file, 'song.webm')
 
-    vClient.play(discord.FFmpegOpusAudio('song.webm'), after=lambda e: check_queue())
+    v_client.play(discord.FFmpegOpusAudio('song.webm'), after=lambda e: check_queue())
 
 # Makes the bot play a song or adds it to a queue if there is a song already playing
 @bot.command(aliases=['p'])
 async def play(ctx, *, searchKey : str):
-    global loopQ
+    global loop_queue
     global playlist_mode
-    songQueue = get_song_queue()["queue"]
+    song_queue = get_song_queue()["queue"]
     voice = ctx.voice_client
     if voice == None:
         await ctx.send('Im not connected to voice channel')
@@ -154,7 +150,7 @@ async def play(ctx, *, searchKey : str):
         if i != -1:
             searchKey = searchKey[:i]
 
-    info = await findSong(searchKey)
+    info = await find_song(searchKey)
     if info == None:
         await ctx.send("Can't find the song...try typing its name...")
         return
@@ -173,13 +169,13 @@ async def play(ctx, *, searchKey : str):
 
     # Checks if there is already a downloaded song (yt video)
     song = os.path.isfile('song.webm')
-    songQueue["urls"].append(url)
-    songQueue["titles"].append(title)
-    songQueue["durations"].append(duration)
+    song_queue["urls"].append(url)
+    song_queue["titles"].append(title)
+    song_queue["durations"].append(duration)
     print("writing song queue")
-    write_song_queue(songQueue)
+    write_song_queue(song_queue)
     print("wrote song queue")
-    if loopQ:
+    if loop_queue:
         #loop_song_queue.append(url)
 
         add_loop_song_queue(url, title, duration)
@@ -188,7 +184,7 @@ async def play(ctx, *, searchKey : str):
         await ctx.send('Song added to queue')
     else:
         print("playing first song")
-        start_playing(voice, songQueue["urls"].pop(0), songQueue["titles"].pop(0), songQueue["durations"].pop(0))
+        start_playing(voice, song_queue["urls"].pop(0), song_queue["titles"].pop(0), song_queue["durations"].pop(0))
 
         pop_queue()
 
@@ -196,10 +192,10 @@ async def play(ctx, *, searchKey : str):
 @bot.command(aliases=['q'])
 async def queue(ctx, x : int = 1):
     print('Checking queue')
-    global loopQ
+    global loop_queue
     loop_song_queue = get_song_queue()["loop_song_queue"]
-    songQueue = get_song_queue()["queue"]
-    if loopQ:
+    song_queue = get_song_queue()["queue"]
+    if loop_queue:
         print('loop queue list')
         msg = 'Current songs in loop queue :\n'
         print('Assembling queue')
@@ -235,9 +231,9 @@ async def queue(ctx, x : int = 1):
     else:
         print('Non loop queue list')
         print('Assembling queue')
-        if len(songQueue) != 0:
+        if len(song_queue) != 0:
             msg = 'Current songs in queue :\n'
-            l = len(songQueue["titles"])
+            l = len(song_queue["titles"])
             # Calculating total number of pages
             n = l
             if n % 10 == 0:
@@ -257,7 +253,7 @@ async def queue(ctx, x : int = 1):
             
             try :
                 for i in range(st, end):
-                    song_name = songQueue["titles"][i].encode("utf-8").decode("unicode-escape")
+                    song_name = song_queue["titles"][i].encode("utf-8").decode("unicode-escape")
                     msg += str(i + 1) + '. ' + song_name + '\n'
             except:
                 await ctx.send("Invalid")
@@ -269,11 +265,11 @@ async def queue(ctx, x : int = 1):
 # Shuffles the songs in queue
 @bot.command()
 async def shuffle(ctx):
-    global loopQ
+    global loop_queue
     loop_song_queue = get_song_queue()["loop_song_queue"]
 
-    # Check if loopQ is on
-    if loopQ:
+    # Check if loop_queue is on
+    if loop_queue:
         # Check if there are any songs in loop queue
         if len(loop_song_queue["titles"]) != 0 :
             seed = random.random() # Gets random number for seed
@@ -296,22 +292,22 @@ async def shuffle(ctx):
             await ctx.send("There are no songs in loop queue...")
     
     else:
-        songQueue = get_song_queue()["queue"]
-        print(songQueue)        
+        song_queue = get_song_queue()["queue"]
+        print(song_queue)        
         # Check if there are any songs in queue
-        if len(songQueue["titles"]) != 0:
+        if len(song_queue["titles"]) != 0:
             seed = random.random() # Gets random number for seed
-            print(songQueue)
+            print(song_queue)
             random.seed(seed)
-            random.shuffle(songQueue["urls"])
+            random.shuffle(song_queue["urls"])
 
             random.seed(seed)
-            random.shuffle(songQueue["titles"])
+            random.shuffle(song_queue["titles"])
 
             random.seed(seed)
-            random.shuffle(songQueue["durations"])
+            random.shuffle(song_queue["durations"])
 
-            write_song_queue(songQueue)
+            write_song_queue(song_queue)
             await ctx.send("Shuffled queue...")
         
         else:
@@ -321,21 +317,21 @@ async def shuffle(ctx):
 # Deletes song from queue (by using index of song in queue)
 @bot.command(aliases=['del'])
 async def delete(ctx, index : int):
-    global loopQ
+    global loop_queue
 
     global playlist_mode
     if playlist_mode:
         await ctx.send("Can't use this command...playlist mode is on...(-playlist)")
 
-    songQueue = get_song_queue()["queue"]
+    song_queue = get_song_queue()["queue"]
     loop_song_queue = get_song_queue()["loop_song_queue"]
     index -= 1 # Array index compensation
-    if (len(songQueue["urls"]) == 0) and (len(loop_song_queue["urls"]) == 0):
+    if (len(song_queue["urls"]) == 0) and (len(loop_song_queue["urls"]) == 0):
         return
 
     # REWORK THIS! CHEKCKING FOR INDEX!
     # Check if we need to delete song queue or loop song queue
-    if loopQ:
+    if loop_queue:
         try:
             del loop_song_queue["urls"][index]
             del loop_song_queue["titles"][index]
@@ -346,32 +342,32 @@ async def delete(ctx, index : int):
         write_loop_song_queue(loop_song_queue)
         if index >= 1:
             try:
-                del songQueue["urls"][index - 1]
-                del songQueue["titles"][index - 1]
-                del songQueue["durations"][index - 1]
+                del song_queue["urls"][index - 1]
+                del song_queue["titles"][index - 1]
+                del song_queue["durations"][index - 1]
         
-                write_song_queue(songQueue)
+                write_song_queue(song_queue)
             except:
                 await ctx.send("Invalid song index...")
     else:
         try:
-            del songQueue["urls"][index]
-            del songQueue["titles"][index]
-            del songQueue["durations"][index]
+            del song_queue["urls"][index]
+            del song_queue["titles"][index]
+            del song_queue["durations"][index]
 
-            write_song_queue(songQueue)
+            write_song_queue(song_queue)
         except:
             await ctx.send("Invalid song index...")
 
 # Clears song queue or loop song queue depending if loop is turned on
 @bot.command(aliases=['c'])
 async def clear(ctx):
-    global loopQ
+    global loop_queue
     global playlist_mode
-    if loopQ:
+    if loop_queue:
         clear_queues()
         playlist_mode = False
-        loopQ = False
+        loop_queue = False
     else:
 
         with open("data.json", "r") as file:
@@ -403,11 +399,11 @@ async def pause(ctx):
 # Stops the audio play
 @bot.command()
 async def stop(ctx):
-    global loopQ
+    global loop_queue
     voice = ctx.voice_client
     # Clears queues
     clear_queues()
-    loopQ = False
+    loop_queue = False
     # Deactivates playlist mode
     global playlist_mode
     playlist_mode = False
@@ -426,25 +422,25 @@ async def resume(ctx):
     else:
         await ctx.send('Audio is not paused')
 
-loopQ = False
+loop_queue = False
 # Loops the current queue
 @bot.command()
 async def loop(ctx):
-    global loopQ
+    global loop_queue
     global current_song_url
     global current_song_title
     global current_song_duration
-    songQueue = get_song_queue()["queue"]
+    song_queue = get_song_queue()["queue"]
 
     global playlist_mode
     if playlist_mode:
         await ctx.send("Can't use this command...playlist mode is on...(-playlist)")
         return
 
-    if loopQ == False:
-        loopQ = True
+    if loop_queue == False:
+        loop_queue = True
         await ctx.send('Looping current queue')
-        loop_song_queue = songQueue.copy()
+        loop_song_queue = song_queue.copy()
         if current_song_url != '':  # In case loop is used before a song played/queued
             loop_song_queue["urls"].insert(0, current_song_url) # Inserts current song in the beggining of loop queue
             loop_song_queue["titles"].insert(0, current_song_title)
@@ -453,7 +449,7 @@ async def loop(ctx):
             write_loop_song_queue(loop_song_queue)
         print(loop_song_queue)
     else:
-        loopQ = False
+        loop_queue = False
         await ctx.send('Stopped looping')
         loop_song_queue = []
 
@@ -462,7 +458,7 @@ async def loop(ctx):
 # Skips to next song in queue
 @bot.command(aliases=['s'])
 async def skip(ctx):
-    if len(songQueue) != 0:
+    if len(song_queue) != 0:
         voice = ctx.voice_client
         voice.stop()
         await ctx.send("Skipped to next song")
@@ -472,15 +468,15 @@ async def skip(ctx):
         voice.stop()
         await ctx.send("Skipped to next song")
         print('Can not skip, stopping...')
-        return
+
 
 # Commands the bot to leave the voice channel it is currently in making it available
 # to join in other voice channel in case anyone requests it
 @bot.command()
 async def leave(ctx):
     try:
-        global loopQ
-        loopQ = False
+        global loop_queue
+        loop_queue = False
         clear_queues()
         print("cleared queues due to leave")
         voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
@@ -581,14 +577,14 @@ async def play_the_playlist(t_channel, member_name : str, voice, v_channel, u_pl
         print("User is already in voice channel")
     await t_channel.send(member_name + " has joined music voice channel...playing his playlist...")
     write_song_queue(u_playlist) # Writes down the song queue from the users playlist
-    songQueue = get_song_queue()["queue"]
-    start_playing(voice, songQueue["urls"].pop(0), songQueue["titles"].pop(0), songQueue["durations"].pop(0))
+    song_queue = get_song_queue()["queue"]
+    start_playing(voice, song_queue["urls"].pop(0), song_queue["titles"].pop(0), song_queue["durations"].pop(0))
     pop_queue()
 
-    global loopQ
-    loopQ = True
+    global loop_queue
+    loop_queue = True
     await t_channel.send('Looping current queue')
-    loop_song_queue = songQueue.copy()
+    loop_song_queue = song_queue.copy()
     loop_song_queue["urls"].insert(0, current_song_url) # Inserts current song in the beggining of loop queue
     loop_song_queue["titles"].insert(0, current_song_title)
     loop_song_queue["durations"].insert(0, current_song_duration)
@@ -600,7 +596,7 @@ async def copyplaylist(ctx):
     # Check if the song is already being played if it is we add all songs
     # to queue if not we play the first one and add the rest
     song = os.path.isfile("song.webm")
-    songQueue = get_song_queue()["queue"]
+    song_queue = get_song_queue()["queue"]
     loop_song_queue = get_song_queue()["loop_song_queue"]
     member_id = ctx.author.id
     user_playlist = get_playlist(member_id)
@@ -609,22 +605,22 @@ async def copyplaylist(ctx):
         await ctx.send("Im not connected to any voice channels...")
         return
     if song:
-        for i in user_playlist["urls"]: songQueue["urls"].append(i)
-        for i in user_playlist["titles"]: songQueue["titles"].append(i)
-        for i in user_playlist["durations"]: songQueue["durations"].append(i)
-        write_song_queue(songQueue)
+        for i in user_playlist["urls"]: song_queue["urls"].append(i)
+        for i in user_playlist["titles"]: song_queue["titles"].append(i)
+        for i in user_playlist["durations"]: song_queue["durations"].append(i)
+        write_song_queue(song_queue)
         await ctx.send("Copied songs from your playlist to queue...")
     else:
-        for i in user_playlist["urls"]: songQueue["urls"].append(i)
-        for i in user_playlist["titles"]: songQueue["titles"].append(i)
-        for i in user_playlist["durations"]: songQueue["durations"].append(i)
-        write_song_queue(songQueue)
-        start_playing(voice, songQueue["urls"].pop(0), songQueue["titles"].pop(0), songQueue["durations"].pop(0))
+        for i in user_playlist["urls"]: song_queue["urls"].append(i)
+        for i in user_playlist["titles"]: song_queue["titles"].append(i)
+        for i in user_playlist["durations"]: song_queue["durations"].append(i)
+        write_song_queue(song_queue)
+        start_playing(voice, song_queue["urls"].pop(0), song_queue["titles"].pop(0), song_queue["durations"].pop(0))
         pop_queue()
         await ctx.send("Copied songs from your playlist to queue...")
     
-    global loopQ
-    if loopQ:
+    global loop_queue
+    if loop_queue:
         for i in user_playlist["urls"]: loop_song_queue["urls"].append(i)
         for i in user_playlist["titles"]: loop_song_queue["titles"].append(i)
         for i in user_playlist["durations"]: loop_song_queue["durations"].append(i)
@@ -635,7 +631,7 @@ async def copyplaylist(ctx):
 @bot.command(aliases=['pladd'])
 async def playlistadd(ctx, *, searchKey : str):
     print('Adding song')
-    info = await findSong(searchKey)
+    info = await find_song(searchKey)
     url = info[0]
     title = info[1].encode("unicode-escape").decode("utf-8")
     duration = info[2]
@@ -653,11 +649,11 @@ async def playlistadd(ctx, *, searchKey : str):
         print("Updating song queue and loop song queue")
         global playlist_mode
         if playlist_mode:
-            songQueue = get_song_queue()["queue"]
-            songQueue["urls"].append(url)
-            songQueue["titles"].append(title)
-            songQueue["durations"].append(duration)
-            write_song_queue(songQueue)
+            song_queue = get_song_queue()["queue"]
+            song_queue["urls"].append(url)
+            song_queue["titles"].append(title)
+            song_queue["durations"].append(duration)
+            write_song_queue(song_queue)
 
             loop_song_queue = get_song_queue()["loop_song_queue"]
             loop_song_queue["urls"].append(url)
@@ -744,7 +740,7 @@ async def playlistshuffle(ctx):
 async def playlistdel(ctx, index : int):
     print("Deleting song from playlist")
     loop_song_queue = get_song_queue()["loop_song_queue"]
-    songQueue = get_song_queue()["queue"]
+    song_queue = get_song_queue()["queue"]
     id = ctx.author.id
     index -= 1 # Index compensation
     playlist_q = get_playlist(id)
@@ -894,7 +890,7 @@ async def shutdown(ctx):
 # -------------------------
 
 # Looking up for url of song by its name
-async def findSong(name : str):
+async def find_song(name : str):
     videosSearch = VideosSearch(name, limit = 1)
     videosResult = await videosSearch.next()
     videosResult = videosResult["result"]
