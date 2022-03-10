@@ -435,7 +435,7 @@ async def loop(ctx):
         await ctx.send("Can't use this command...playlist mode is on...(-playlist)")
         return
 
-    if loop_queue == False:
+    if loop_queue is False:
         loop_queue = True
         await ctx.send('Looping current queue')
         loop_song_queue = song_queue.copy()
@@ -897,6 +897,103 @@ async def setguild(ctx, msg):
 
 # ------------------------------
 
+# Voting system
+# ------------------------------
+
+# Makes the vote
+# Format : [Vote question];[Option1];[Option2];[Option3]...
+@bot.command()
+async def vote(ctx, *, key : str):
+    arr = key.split(';')
+    num = len(arr)
+    # Making sure we have at least two choices and max 10
+    if num < 3 or num > 11:
+        await ctx.send("Invalid number of voting options (min: 2, max: 10)")
+        return
+
+    # Emojies used for numbers encoded in unicode-escape
+    emojies = ["\u0031\ufe0f\u20e3", "\u0032\ufe0f\u20e3", "\u0033\ufe0f\u20e3", "\u0034\ufe0f\u20e3",
+                "\u0035\ufe0f\u20e3", "\u0036\ufe0f\u20e3", "\u0037\ufe0f\u20e3", "\u0038\ufe0f\u20e3",
+                "\u0039\ufe0f\u20e3", "\U0001F51F"]
+
+    # Assembling the message used for voting
+    msg_text = "Vote : " + arr[0] + "\n\n"
+    for i in range(num - 1):
+        option = emojies[i] + " - " + arr[i + 1] + "\n"
+        msg_text += option
+    message = await ctx.send(msg_text)
+    for i in range(num - 1):
+        await message.add_reaction(emojies[i]) # Adding reactions that are used to vote
+
+    # Saving the vote data to vote_data.json
+    await asyncio.sleep(0.5)
+    print("Sent everyting")
+    vote_data = get_vote_data()
+    print("Got vote data")
+    msg_data = { "id" : message.id, "voters" : [], "votes" : []}
+    vote_data["messages"].append(msg_data)
+    print("Appended vote data")
+    save_vote_data(vote_data)
+
+# Using on_raw_reaction_add instead of on_reaction_add so bot
+# can check for added reactions even if messages aren't in bots cache
+@bot.event
+async def on_raw_reaction_add(payload):
+    # Getting payload (user and emoji data)
+    channel = bot.get_channel(payload.channel_id)
+    message = await channel.fetch_message(payload.message_id)
+    user = bot.get_user(payload.user_id)
+    if not user:
+        user = await bot.fetch_user(payload.user_id)
+    print(str(user.id) + " reaction : " + payload.emoji.name)
+    print(message.id)
+
+    # Making sure we add votes only from reactions on vote messages
+    vote_data = get_vote_data()
+    for i in range(len(vote_data["messages"])):
+        if vote_data["messages"][i]["id"] == message.id:
+            if user.id in vote_data["messages"][i]["voters"]:
+                # In case someone votes for multiple things we remove additional votes
+                print("removing users emoji/vote...")
+                await message.remove_reaction(payload.emoji, user)
+            else:
+                # Saving who voted and their vote
+                vote_data["messages"][i]["voters"].append(user.id)
+                emoji = payload.emoji.name.encode("unicode-escape").decode("utf-8")
+                vote_data["messages"][i]["votes"].append(emoji)
+                print("Added user to 'voters' for vote id : " + str(message.id))
+                save_vote_data(vote_data)
+
+# Using on_raw_reactio_remove to check if a person wants to withdraw a vote
+# and change it
+@bot.event
+async def on_raw_reaction_remove(payload):
+    # Getting payload (user and emoji data)
+    channel = bot.get_channel(payload.channel_id)
+    message = await channel.fetch_message(payload.message_id)
+    user = bot.get_user(payload.user_id)
+    if not user:
+        user = await bot.fetch_user(payload.user_id)
+    print(str(user.id) + " removed reaction : " + payload.emoji.name)
+    print(message.id)
+
+    # Checking if vote is supposed to be withdrawn
+    vote_data = get_vote_data()
+    for i in range(len(vote_data["messages"])):
+        if vote_data["messages"][i]["id"] == message.id:
+            if user.id in vote_data["messages"][i]["voters"]:
+                ind = vote_data["messages"][i]["voters"].index(user.id)
+                emoji = payload.emoji.name.encode("unicode-escape").decode("utf-8")
+                # Checking if votes match
+                if vote_data["messages"][i]["votes"][ind] == emoji:
+                    print("removing users vote and removing them from list of voters...")
+                    del vote_data["messages"][i]["votes"][ind]
+                    del vote_data["messages"][i]["voters"][ind]
+                    await message.remove_reaction(payload.emoji, user)
+                    save_vote_data(vote_data)
+
+
+# ------------------------------
 
 # OWNER COMMAND ONLY
 # Shuts down the bot (Takes some time for bot to log off)
@@ -1061,6 +1158,16 @@ def clear_queues():
         json.dump(data, outfile, ensure_ascii=False, indent=4)
     outfile.close()
 
+def get_vote_data():
+    with open("vote_data.json", "r") as file:
+        data = json.loads(file.read())
+    file.close()
+    return data
+
+def save_vote_data(data):
+    with open("vote_data.json", "w") as outfile:
+        json.dump(data, outfile, ensure_ascii=False, indent=4)
+    outfile.close()
 
 # -------------------------
 #
