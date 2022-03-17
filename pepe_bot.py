@@ -453,6 +453,32 @@ async def loop(ctx):
 
         write_loop_song_queue(loop_song_queue)
 
+# Reverses the order of songs in song queue
+@bot.command(aliases=['r'])
+async def reverse(ctx):
+    global loop_queue
+    if loop_queue:
+        loop_song_queue = get_song_queue()["loop_song_queue"]
+        if (len(loop_song_queue) < 2):
+            await ctx.send("Error / not enough songs in queue !")
+            return
+        loop_song_queue["urls"].reverse()
+        loop_song_queue["titles"].reverse()
+        loop_song_queue["durations"].reverse()
+        write_loop_song_queue(loop_song_queue)
+        write_song_queue(loop_song_queue)
+        await ctx.send("Reversed current queue !")
+    else:
+        song_queue = get_song_queue()["song_queue"]
+        if (len(song_queue) < 2):
+            await ctx.send("Error / not enough songs in queue !")
+            return
+        song_queue["urls"].reverse()
+        song_queue["titles"].reverse()
+        song_queue["durations"].reverse()
+        write_song_queue(song_queue)
+        await ctx.send("Reversed current queue !")
+
 # Skips to next song in queue
 @bot.command(aliases=['s'])
 async def skip(ctx):
