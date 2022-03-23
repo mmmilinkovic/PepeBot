@@ -13,6 +13,8 @@ from discord.ext import commands
 from discord.utils import get
 import yt_dlp
 from youtubesearchpython.__future__ import VideosSearch # Needed to run youtubesearch in async
+from googleapiclient.discovery import build
+from urllib.parse import parse_qs, urlparse
 
 # Sets the high process prio remove when testing on windows
 #p = psutil.Process(os.getpid())
@@ -733,6 +735,51 @@ async def playlistadd(ctx, *, search_key : str):
         print("Done")
         await ctx.send("Song added to your playlist")
 
+# Used to import youtube playlist and make it into playable playlist
+@bot.command()
+async def importplaylist(ctx, url : str):
+    # Google API credentials key
+    key = ''
+
+    try:
+        query = parse_qs(urlparse(url).query, keep_blank_values=True)
+        playlist_id = query["list"][0]
+    except:
+        await ctx.send("ERROR")
+        return
+
+    print(f'get all playlist items links from {playlist_id}')
+    youtube = build("youtube", "v3", developerKey = key)
+
+    request = youtube.playlistItems().list(
+        part = "snippet",
+        playlistId = playlist_id
+    )
+    response = request.execute()
+    print("Got request")
+    playlist_items = []
+    while request is not None:
+        response = request.execute()
+        playlist_items += response["items"]
+        request = youtube.playlistItems().list_next(request, response)
+
+    member_id = ctx.author.id
+    pl = get_playlist(member_id)
+    if pl is not None:
+        pl_delete_by_id(member_id)
+
+    print("Making new playlist and adding songs to it")
+    member_playlist = make_playlist(ctx.author.name, member_id)
+    for item in playlist_items:
+        s_url = "https://www.youtube.com/watch?v=" + item["snippet"]["resourceId"]["videoId"]
+        s_title = item['snippet']['title'].encode("unicode-escape").decode("utf-8")
+        print(s_url + " / " + s_title)
+        member_playlist["urls"].append(s_url)
+        member_playlist["titles"].append(s_title)
+        member_playlist["durations"].append('123')
+
+    save_playlist(member_playlist, member_id)
+    await ctx.send("Imported playlist from youtube!")
 
 # Shows the user their current saved playlist (10 songs per page (default: page 1))
 @bot.command(aliases=['plq'])
@@ -827,6 +874,14 @@ async def playlistdelall(ctx):
     else:
         await ctx.send("You don't have your own playlist...to create one use -playlistadd and add your first song")
 
+# Deletes the whole users playlist by user id also deletes their list in data.json
+def pl_delete_by_id(member_id):
+    member_playlist = get_playlist(member_id)
+    global playlist_mode
+    playlist_mode = False
+    print("Turned off playlist mode due to playdelall")
+    if member_playlist is not None:
+        delete_playlist(member_id)
 
 # Returns the users playlist list with urls, titles and durations of songs
 def get_playlist(id : int):
