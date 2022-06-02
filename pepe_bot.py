@@ -13,8 +13,8 @@ from discord.ext import commands
 from discord.utils import get
 import yt_dlp
 from youtubesearchpython.__future__ import VideosSearch # Needed to run youtubesearch in async
-from googleapiclient.discovery import build
-from urllib.parse import parse_qs, urlparse
+#from googleapiclient.discovery import build
+#from urllib.parse import parse_qs, urlparse
 
 # Sets the high process prio remove when testing on windows
 #p = psutil.Process(os.getpid())
@@ -288,8 +288,10 @@ async def shuffle(ctx):
             # Write shuffled queue to loop song queue and current song queue
             write_loop_song_queue(loop_song_queue)
             write_song_queue(loop_song_queue)
-            await ctx.send("Shuffled loop queue...")
 
+            voice = ctx.voice_client
+            voice.stop()
+            await ctx.send("Playing new shuffled loop queue...")
         else:
             await ctx.send("There are no songs in loop queue...")
 
@@ -310,8 +312,10 @@ async def shuffle(ctx):
             random.shuffle(song_queue["durations"])
 
             write_song_queue(song_queue)
-            await ctx.send("Shuffled queue...")
 
+            voice = ctx.voice_client
+            voice.stop()
+            await ctx.send("Playing new shuffled queue...")
         else:
             await ctx.send("There are no songs in queue...")
 
@@ -735,6 +739,7 @@ async def playlistadd(ctx, *, search_key : str):
         print("Done")
         await ctx.send("Song added to your playlist")
 
+'''
 # Used to import youtube playlist and make it into playable playlist
 @bot.command()
 async def importplaylist(ctx, url : str):
@@ -780,6 +785,7 @@ async def importplaylist(ctx, url : str):
 
     save_playlist(member_playlist, member_id)
     await ctx.send("Imported playlist from youtube!")
+'''
 
 # Shows the user their current saved playlist (10 songs per page (default: page 1))
 @bot.command(aliases=['plq'])
@@ -874,6 +880,7 @@ async def playlistdelall(ctx):
     else:
         await ctx.send("You don't have your own playlist...to create one use -playlistadd and add your first song")
 
+'''
 # Deletes the whole users playlist by user id also deletes their list in data.json
 def pl_delete_by_id(member_id):
     member_playlist = get_playlist(member_id)
@@ -882,6 +889,7 @@ def pl_delete_by_id(member_id):
     print("Turned off playlist mode due to playdelall")
     if member_playlist is not None:
         delete_playlist(member_id)
+'''
 
 # Returns the users playlist list with urls, titles and durations of songs
 def get_playlist(id : int):
